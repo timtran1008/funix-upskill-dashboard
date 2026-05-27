@@ -36,7 +36,8 @@ window.FUNIX_CONFIG = {
 
   // OPTION A: paste the ONE master spreadsheet ID here (default for all weeks).
   // OPTION B: leave '' and fill weeks[].sheetId per form instead.
-  SHEET_ID: '',
+  // WIRED 2026-05-27: all 7 forms linked to one master sheet (tabs "Form Responses 1..7").
+  SHEET_ID: '1hI80rkNtOONrbYgdDfMGCcK3zZHGoNk5Wm3CyhdHV3U',
 
   // The three locked teams (roster May 22 — PTCT dropped).
   // `formValues` maps the OLD "Bạn thuộc nhóm nào?" form choices onto each team,
@@ -49,25 +50,26 @@ window.FUNIX_CONFIG = {
   ],
 
   // Optional roster for "who hasn't submitted" tracking (columns Name|Email|Team).
-  // sheetId defaults to SHEET_ID; gid blank = first tab. Without it, the
-  // dashboard shows only people who submitted at least once.
-  roster: { sheetId: '', gid: '' },
+  // To enable: add a tab to the master sheet (e.g. named "Roster") and set
+  // sheetName below. Without it, the dashboard shows only people who submitted.
+  roster: { sheetId: '', sheetName: '', gid: '' },
 
   // The 8-week assignment schedule. `deadline` = 24h before the Sunday plenary
   // (Sat 14:00 VN), per the syllabus. `source: 'form'` weeks auto-track from
-  // their linked sheet; `source: 'group'` weeks (T7/T8) are group/manual
-  // deliverables shown for context.
-  //   sheetId : leave '' to use the master SHEET_ID (Option A); set per form for Option B.
-  //   gid     : the response tab's gid (Option A); leave '' for first tab (Option B).
+  // their linked tab; `source: 'group'` weeks (T7/T8) are group/manual.
+  // Tab selector precedence: sheetName > gid > (own sheet's first tab).
+  //   sheetName : the response tab name (Option A, master sheet — used here).
+  //   sheetId   : per-form spreadsheet id (Option B); '' = use master SHEET_ID.
+  //   gid       : numeric tab gid (alternative to sheetName).
   weeks: [
-    { key: 'T0', label: 'T0 · Cài đặt',        deadline: '2026-05-30T14:00:00', source: 'form',  sheetId: '', gid: '' },
-    { key: 'T1', label: 'T1 · 4 Biết/Giao',    deadline: '2026-05-30T14:00:00', source: 'form',  sheetId: '', gid: '' },
-    { key: 'T2', label: 'T2 · Biết Gõ',        deadline: '2026-06-06T14:00:00', source: 'form',  sheetId: '', gid: '' },
-    { key: 'T3', label: 'T3 · Biết Gạn',       deadline: '2026-06-13T14:00:00', source: 'form',  sheetId: '', gid: '' },
-    { key: 'T4', label: 'T4 · Vòng lặp',       deadline: '2026-06-20T14:00:00', source: 'form',  sheetId: '', gid: '' },
-    { key: 'T5', label: 'T5 · profile.md',     deadline: '2026-06-27T14:00:00', source: 'form',  sheetId: '', gid: '' },
-    { key: 'T6', label: 'T6 · PARA',           deadline: '2026-07-04T14:00:00', source: 'form',  sheetId: '', gid: '' },
-    { key: 'T7', label: 'T7 · Bảng tổng hợp',  deadline: '2026-07-16T09:00:00', source: 'group', sheetId: '', gid: '' },
-    { key: 'T8', label: 'T8 · Nghiệm thu',     deadline: '2026-07-23T09:00:00', source: 'group', sheetId: '', gid: '' },
+    { key: 'T0', label: 'T0 · Cài đặt',        deadline: '2026-05-30T14:00:00', source: 'form',  sheetName: 'Form Responses 1', sheetId: '', gid: '' },
+    { key: 'T1', label: 'T1 · 4 Biết/Giao',    deadline: '2026-05-30T14:00:00', source: 'form',  sheetName: 'Form Responses 2', sheetId: '', gid: '' },
+    { key: 'T2', label: 'T2 · Biết Gõ',        deadline: '2026-06-06T14:00:00', source: 'form',  sheetName: 'Form Responses 3', sheetId: '', gid: '' },
+    { key: 'T3', label: 'T3 · Biết Gạn',       deadline: '2026-06-13T14:00:00', source: 'form',  sheetName: 'Form Responses 4', sheetId: '', gid: '' },
+    { key: 'T4', label: 'T4 · Vòng lặp',       deadline: '2026-06-20T14:00:00', source: 'form',  sheetName: 'Form Responses 5', sheetId: '', gid: '' },
+    { key: 'T5', label: 'T5 · profile.md',     deadline: '2026-06-27T14:00:00', source: 'form',  sheetName: 'Form Responses 6', sheetId: '', gid: '' },
+    { key: 'T6', label: 'T6 · PARA',           deadline: '2026-07-04T14:00:00', source: 'form',  sheetName: 'Form Responses 7', sheetId: '', gid: '' },
+    { key: 'T7', label: 'T7 · Bảng tổng hợp',  deadline: '2026-07-16T09:00:00', source: 'group', sheetName: '', sheetId: '', gid: '' },
+    { key: 'T8', label: 'T8 · Nghiệm thu',     deadline: '2026-07-23T09:00:00', source: 'group', sheetName: '', sheetId: '', gid: '' },
   ],
 };

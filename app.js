@@ -17,8 +17,16 @@
   var LIVE = !!trimv(CFG.SHEET_ID) ||
     CFG.weeks.some(function (w) { return w.source === 'form' && trimv(w.sheetId); }) ||
     !!trimv(CFG.roster && CFG.roster.sheetId);
-  // a form week is "wired" (has a data source) in the current mode
-  function weekWired(w) { return w.source === 'form' && (LIVE ? !!weekSheetId(w) : true); }
+  // a tab selector picks the right tab within a spreadsheet
+  function weekTabSel(w) { return trimv(w.sheetName) || trimv(w.gid); }
+  // a form week is "wired" (has a usable data source) in the current mode.
+  // LIVE needs a resolvable sheet AND a way to find the tab: an explicit
+  // selector, or a per-form dedicated sheet (its first tab).
+  function weekWired(w) {
+    if (w.source !== 'form') return false;
+    if (!LIVE) return true;
+    return !!weekSheetId(w) && (!!weekTabSel(w) || !!trimv(w.sheetId));
+  }
 
   // ---- helpers --------------------------------------------------------------
   function $(sel) { return document.querySelector(sel); }
@@ -67,14 +75,14 @@
   }
 
   // ---- gviz fetch -----------------------------------------------------------
-  function gvizUrl(sheetId, gid) {
-    return 'https://docs.google.com/spreadsheets/d/' + sheetId +
-      '/gviz/tq?tqx=out:json&headers=1' +
-      (trimv(gid) ? '&gid=' + encodeURIComponent(trimv(gid)) : '') +
-      '&_=' + Date.now();   // cache-bust so refresh shows fresh submissions
+  function gvizUrl(sheetId, gid, sheetName) {
+    var u = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:json&headers=1';
+    if (trimv(sheetName)) u += '&sheet=' + encodeURIComponent(trimv(sheetName));
+    else if (trimv(gid)) u += '&gid=' + encodeURIComponent(trimv(gid));
+    return u + '&_=' + Date.now();   // cache-bust so refresh shows fresh submissions
   }
-  function fetchTab(sheetId, gid) {
-    return fetch(gvizUrl(sheetId, gid)).then(function (r) { return r.text(); }).then(function (txt) {
+  function fetchTab(sheetId, gid, sheetName) {
+    return fetch(gvizUrl(sheetId, gid, sheetName)).then(function (r) { return r.text(); }).then(function (txt) {
       var a = txt.indexOf('('), b = txt.lastIndexOf(')');
       if (a < 0 || b < 0) throw new Error('Không đọc được dữ liệu (sheet chưa chia sẻ "ai có link đều xem"?)');
       var payload = JSON.parse(txt.substring(a + 1, b));
@@ -96,12 +104,13 @@
   // ---- build the normalized model ------------------------------------------
   // returns { roster:[{name,email,teamId}], subs:[{email,name,teamFormValue,week,ts:Date}] }
   function buildLiveModel() {
-    var formWeeks = CFG.weeks.filter(function (w) { return w.source === 'form' && weekSheetId(w); });
+    var formWeeks = CFG.weeks.filter(weekWired);
     var jobs = formWeeks.map(function (w) {
-      return fetchTab(weekSheetId(w), w.gid).then(function (table) { return { week: w.key, table: table }; });
+      return fetchTab(weekSheetId(w), w.gid, w.sheetName).then(function (table) { return { week: w.key, table: table }; });
     });
-    var rosterJob = ROSTER_SHEET
-      ? fetchTab(ROSTER_SHEET, CFG.roster.gid).then(function (t) { return t; }).catch(function () { return null; })
+    var rosterHasTab = CFG.roster && (trimv(CFG.roster.sheetName) || trimv(CFG.roster.gid) || trimv(CFG.roster.sheetId));
+    var rosterJob = (ROSTER_SHEET && rosterHasTab)
+      ? fetchTab(ROSTER_SHEET, CFG.roster.gid, CFG.roster.sheetName).then(function (t) { return t; }).catch(function () { return null; })
       : Promise.resolve(null);
 
     return Promise.all([rosterJob, Promise.all(jobs)]).then(function (res) {
@@ -252,6 +261,29 @@
     root.appendChild(kpi);
 
     root.appendChild(legend());
+
+    // empty state — wired but nobody has submitted and no roster loaded
+    if (!learners.length) {
+      var nextForm = null;
+      for (var i = 0; i < CFG.weeks.length; i++) {
+        var w = CFG.weeks[i];
+        if (w.source === 'form' && weekWired(w)) {
+          var dl = new Date(w.deadline + CFG.timezone);
+          if (dl >= now) { nextForm = w; break; }
+        }
+      }
+      var note = el('div', 'empty-note');
+      note.appendChild(el('strong', null, 'Chưa có bài nộp nào.'));
+      var line = LIVE
+        ? ('Đã nối Google Sheet thành công — sẽ tự hiện học viên ngay khi có bài nộp đầu tiên'
+            + (nextForm ? ' (hạn ' + nextForm.label.replace(/^\S+\s·\s/, '') + ': ' + fmtDate(nextForm.deadline) + ').' : '.'))
+        : 'Chưa nối dữ liệu.';
+      note.appendChild(el('p', null, line));
+      note.appendChild(el('p', 'empty-hint', 'Mẹo: thêm 1 tab "Roster" (cột Name | Email | Team) vào sheet để thấy TRƯỚC toàn bộ danh sách lớp và ai chưa nộp, không cần chờ bài nộp đầu tiên.'));
+      root.appendChild(note);
+      $('#meta').textContent = sourceLabel + ' · cập nhật ' + new Date().toLocaleString('vi-VN', { hour12: false });
+      return;
+    }
 
     // per team
     CFG.teams.forEach(function (team) {
