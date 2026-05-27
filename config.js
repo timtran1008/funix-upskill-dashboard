@@ -2,31 +2,40 @@
    Funix Upskill Q2 2026 — Dashboard config
    -----------------------------------------------------------------------------
    This is the ONLY file Tim edits to wire the live data. No PII lives here —
-   only the Google Sheet ID + the numeric tab id (gid) of each week's responses.
-   All names / submissions / roster are fetched LIVE from the shared sheet.
+   only Google Sheet IDs + tab gids. All names / submissions / roster are
+   fetched LIVE from the shared sheet(s) at runtime.
 
-   HOW TO WIRE THE LIVE SHEET (one-time, ~5 min):
-     1. Open the master responses spreadsheet (the one the 7 Google Forms feed).
-     2. Share it: "Anyone with the link" -> "Viewer".  (Required for gviz fetch.)
-     3. Copy the spreadsheet ID from its URL:
-          docs.google.com/spreadsheets/d/<<THIS PART>>/edit
-        -> paste into SHEET_ID below.
-     4. For each week's response tab, open it and read the gid from the URL:
-          ...../edit#gid=<<THIS NUMBER>>
-        -> paste into the matching WEEKS[].gid below.
-     5. (Optional, for "who hasn't submitted" tracking) Add a tab named "Roster"
-        with columns: Name | Email | Team. Put its gid into ROSTER.gid.
-     6. Commit + push. The live URL updates automatically as forms come in.
+   PREREQUISITE: each weekly Google Form must be linked to a Google Sheet
+   (Form -> Responses tab -> Link to Sheets). That is what makes responses
+   web-readable. Two ways to wire, pick one:
 
-   Until SHEET_ID is filled, the dashboard renders bundled SAMPLE data so the
-   layout is reviewable. A red "SAMPLE DATA" badge shows when not yet live.
+   --- OPTION A (recommended): ONE master sheet, 7 tabs --------------------------
+     1. Form Tuần 0 -> Responses -> Link to Sheets -> "Create a new spreadsheet".
+     2. Forms Tuần 1..6 -> Responses -> Link to Sheets -> "Select existing" ->
+        pick the SAME spreadsheet. (Now it has 7 tabs.)
+     3. Share that spreadsheet: "Anyone with the link" -> Viewer.
+     4. Paste its ID into SHEET_ID below (the part of the URL between /d/ and /edit).
+     5. Open each tab, copy the gid from the URL (...#gid=NNN) into weeks[].gid.
+
+   --- OPTION B: one sheet per form --------------------------------------------
+     1. Each form -> Responses -> Link to Sheets -> "Create a new spreadsheet".
+     2. Share each spreadsheet "Anyone with the link" -> Viewer.
+     3. Paste each spreadsheet's ID into the matching weeks[].sheetId.
+        Leave weeks[].gid blank — it defaults to the first (responses) tab.
+
+   Roster (optional, to track who HASN'T submitted): make a sheet/tab with
+   columns Name | Email | Team, share it, put its id+gid into `roster`.
+
+   Until anything is wired, the dashboard renders bundled SAMPLE data with a red
+   "SAMPLE DATA" badge. Linking a form also back-fills responses already submitted.
    ============================================================================= */
 
 window.FUNIX_CONFIG = {
   cohort: 'Funix Upskill Q2 2026',
   timezone: '+07:00',                 // VN time, used for deadline comparison
 
-  // Paste the spreadsheet ID here to go live. Leave '' to use sample data.
+  // OPTION A: paste the ONE master spreadsheet ID here (default for all weeks).
+  // OPTION B: leave '' and fill weeks[].sheetId per form instead.
   SHEET_ID: '',
 
   // The three locked teams (roster May 22 — PTCT dropped).
@@ -39,23 +48,26 @@ window.FUNIX_CONFIG = {
     { id: 'hannah',  name: 'Hannah & mentor khảo thí đào tạo', coachingDay: 'Thứ Năm', formValues: ['Hannah', 'Mentor'] },
   ],
 
-  // Optional roster tab for "who hasn't submitted" tracking.
-  // Without it, the dashboard shows only people who submitted at least once.
-  roster: { gid: '' },
+  // Optional roster for "who hasn't submitted" tracking (columns Name|Email|Team).
+  // sheetId defaults to SHEET_ID; gid blank = first tab. Without it, the
+  // dashboard shows only people who submitted at least once.
+  roster: { sheetId: '', gid: '' },
 
   // The 8-week assignment schedule. `deadline` = 24h before the Sunday plenary
-  // (Sat 14:00 VN), per the syllabus. `source: 'form'` weeks are auto-tracked
-  // from their response tab; `source: 'group'` weeks (T7/T8) are group/manual
+  // (Sat 14:00 VN), per the syllabus. `source: 'form'` weeks auto-track from
+  // their linked sheet; `source: 'group'` weeks (T7/T8) are group/manual
   // deliverables shown for context.
+  //   sheetId : leave '' to use the master SHEET_ID (Option A); set per form for Option B.
+  //   gid     : the response tab's gid (Option A); leave '' for first tab (Option B).
   weeks: [
-    { key: 'T0', label: 'T0 · Cài đặt',        deadline: '2026-05-30T14:00:00', source: 'form',  gid: '' },
-    { key: 'T1', label: 'T1 · 4 Biết/Giao',    deadline: '2026-05-30T14:00:00', source: 'form',  gid: '' },
-    { key: 'T2', label: 'T2 · Biết Gõ',        deadline: '2026-06-06T14:00:00', source: 'form',  gid: '' },
-    { key: 'T3', label: 'T3 · Biết Gạn',       deadline: '2026-06-13T14:00:00', source: 'form',  gid: '' },
-    { key: 'T4', label: 'T4 · Vòng lặp',       deadline: '2026-06-20T14:00:00', source: 'form',  gid: '' },
-    { key: 'T5', label: 'T5 · profile.md',     deadline: '2026-06-27T14:00:00', source: 'form',  gid: '' },
-    { key: 'T6', label: 'T6 · PARA',           deadline: '2026-07-04T14:00:00', source: 'form',  gid: '' },
-    { key: 'T7', label: 'T7 · Bảng tổng hợp',  deadline: '2026-07-16T09:00:00', source: 'group', gid: '' },
-    { key: 'T8', label: 'T8 · Nghiệm thu',     deadline: '2026-07-23T09:00:00', source: 'group', gid: '' },
+    { key: 'T0', label: 'T0 · Cài đặt',        deadline: '2026-05-30T14:00:00', source: 'form',  sheetId: '', gid: '' },
+    { key: 'T1', label: 'T1 · 4 Biết/Giao',    deadline: '2026-05-30T14:00:00', source: 'form',  sheetId: '', gid: '' },
+    { key: 'T2', label: 'T2 · Biết Gõ',        deadline: '2026-06-06T14:00:00', source: 'form',  sheetId: '', gid: '' },
+    { key: 'T3', label: 'T3 · Biết Gạn',       deadline: '2026-06-13T14:00:00', source: 'form',  sheetId: '', gid: '' },
+    { key: 'T4', label: 'T4 · Vòng lặp',       deadline: '2026-06-20T14:00:00', source: 'form',  sheetId: '', gid: '' },
+    { key: 'T5', label: 'T5 · profile.md',     deadline: '2026-06-27T14:00:00', source: 'form',  sheetId: '', gid: '' },
+    { key: 'T6', label: 'T6 · PARA',           deadline: '2026-07-04T14:00:00', source: 'form',  sheetId: '', gid: '' },
+    { key: 'T7', label: 'T7 · Bảng tổng hợp',  deadline: '2026-07-16T09:00:00', source: 'group', sheetId: '', gid: '' },
+    { key: 'T8', label: 'T8 · Nghiệm thu',     deadline: '2026-07-23T09:00:00', source: 'group', sheetId: '', gid: '' },
   ],
 };

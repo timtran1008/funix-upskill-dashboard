@@ -8,7 +8,17 @@
 
   var CFG = window.FUNIX_CONFIG;
   var SAMPLE = window.FUNIX_SAMPLE;
-  var LIVE = !!(CFG.SHEET_ID && CFG.SHEET_ID.trim());
+
+  function trimv(s) { return (s == null ? '' : ('' + s)).trim(); }
+  // a form week's resolved spreadsheet id (per-week override, else master)
+  function weekSheetId(w) { return trimv(w.sheetId) || trimv(CFG.SHEET_ID); }
+  var ROSTER_SHEET = (CFG.roster && (trimv(CFG.roster.sheetId) || trimv(CFG.SHEET_ID))) || '';
+  // LIVE = anything is wired to a real sheet
+  var LIVE = !!trimv(CFG.SHEET_ID) ||
+    CFG.weeks.some(function (w) { return w.source === 'form' && trimv(w.sheetId); }) ||
+    !!trimv(CFG.roster && CFG.roster.sheetId);
+  // a form week is "wired" (has a data source) in the current mode
+  function weekWired(w) { return w.source === 'form' && (LIVE ? !!weekSheetId(w) : true); }
 
   // ---- helpers --------------------------------------------------------------
   function $(sel) { return document.querySelector(sel); }
@@ -57,13 +67,14 @@
   }
 
   // ---- gviz fetch -----------------------------------------------------------
-  function gvizUrl(gid) {
-    return 'https://docs.google.com/spreadsheets/d/' + CFG.SHEET_ID +
-      '/gviz/tq?tqx=out:json&headers=1&gid=' + encodeURIComponent(gid) +
+  function gvizUrl(sheetId, gid) {
+    return 'https://docs.google.com/spreadsheets/d/' + sheetId +
+      '/gviz/tq?tqx=out:json&headers=1' +
+      (trimv(gid) ? '&gid=' + encodeURIComponent(trimv(gid)) : '') +
       '&_=' + Date.now();   // cache-bust so refresh shows fresh submissions
   }
-  function fetchTab(gid) {
-    return fetch(gvizUrl(gid)).then(function (r) { return r.text(); }).then(function (txt) {
+  function fetchTab(sheetId, gid) {
+    return fetch(gvizUrl(sheetId, gid)).then(function (r) { return r.text(); }).then(function (txt) {
       var a = txt.indexOf('('), b = txt.lastIndexOf(')');
       if (a < 0 || b < 0) throw new Error('Không đọc được dữ liệu (sheet chưa chia sẻ "ai có link đều xem"?)');
       var payload = JSON.parse(txt.substring(a + 1, b));
@@ -85,12 +96,12 @@
   // ---- build the normalized model ------------------------------------------
   // returns { roster:[{name,email,teamId}], subs:[{email,name,teamFormValue,week,ts:Date}] }
   function buildLiveModel() {
-    var formWeeks = CFG.weeks.filter(function (w) { return w.source === 'form' && w.gid; });
+    var formWeeks = CFG.weeks.filter(function (w) { return w.source === 'form' && weekSheetId(w); });
     var jobs = formWeeks.map(function (w) {
-      return fetchTab(w.gid).then(function (table) { return { week: w.key, table: table }; });
+      return fetchTab(weekSheetId(w), w.gid).then(function (table) { return { week: w.key, table: table }; });
     });
-    var rosterJob = (CFG.roster && CFG.roster.gid)
-      ? fetchTab(CFG.roster.gid).then(function (t) { return t; }).catch(function () { return null; })
+    var rosterJob = ROSTER_SHEET
+      ? fetchTab(ROSTER_SHEET, CFG.roster.gid).then(function (t) { return t; }).catch(function () { return null; })
       : Promise.resolve(null);
 
     return Promise.all([rosterJob, Promise.all(jobs)]).then(function (res) {
@@ -175,11 +186,12 @@
   }
 
   // ---- per-cell status ------------------------------------------------------
-  // 'ontime' | 'late' | 'submitted' | 'missing' | 'notdue' | 'group'
+  // 'ontime' | 'late' | 'submitted' | 'missing' | 'notdue' | 'group' | 'nodata'
   function cellStatus(learner, week, now) {
-    var deadline = new Date(week.deadline.replace(/$/, '') + (week.deadline.indexOf('+') < 0 ? CFG.timezone : ''));
+    var deadline = new Date(week.deadline + (week.deadline.indexOf('+') < 0 ? CFG.timezone : ''));
     var submittedTs = learner.weeks[week.key];
     if (week.source === 'group') return { code: 'group', deadline: deadline };
+    if (!weekWired(week)) return { code: 'nodata', deadline: deadline };
     if (submittedTs) {
       if (!(submittedTs instanceof Date) || isNaN(submittedTs)) return { code: 'submitted', deadline: deadline };
       return { code: submittedTs <= deadline ? 'ontime' : 'late', deadline: deadline, ts: submittedTs };
@@ -212,6 +224,7 @@
     missing:  { ch: '✗', cls: 's-missing', t: 'Chưa nộp (quá hạn)' },
     notdue:   { ch: '·', cls: 's-notdue',  t: 'Chưa tới hạn' },
     group:    { ch: '◇', cls: 's-group',   t: 'Bài nhóm / nghiệm thu' },
+    nodata:   { ch: '–', cls: 's-nodata',  t: 'Chưa nối dữ liệu (form chưa link sheet)' },
   };
 
   function fmtDate(iso) {
@@ -271,8 +284,11 @@
 
   function legend() {
     var l = el('div', 'legend');
-    [['ontime', '✓ đúng hạn'], ['late', '⚠ trễ'], ['missing', '✗ chưa nộp'], ['notdue', '· chưa tới hạn'], ['group', '◇ bài nhóm']]
-      .forEach(function (p) {
+    var items = [['ontime', '✓ đúng hạn'], ['late', '⚠ trễ'], ['missing', '✗ chưa nộp'], ['notdue', '· chưa tới hạn'], ['group', '◇ bài nhóm']];
+    if (LIVE && CFG.weeks.some(function (w) { return w.source === 'form' && !weekWired(w); })) {
+      items.push(['nodata', '– chưa nối dữ liệu']);
+    }
+    items.forEach(function (p) {
         var s = el('span', 'lg ' + GLYPH[p[0]].cls);
         s.appendChild(el('span', 'lg-ch', GLYPH[p[0]].ch));
         s.appendChild(document.createTextNode(' ' + p[1].replace(/^.\s/, '')));
