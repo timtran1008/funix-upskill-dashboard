@@ -52,7 +52,7 @@ window.FUNIX_CONFIG = {
   // Optional roster for "who hasn't submitted" tracking (columns Name|Email|Team).
   // To enable: add a tab to the master sheet (e.g. named "Roster") and set
   // sheetName below. Without it, the dashboard shows only people who submitted.
-  roster: { sheetId: '', sheetName: '', gid: '' },
+  roster: { sheetId: '', sheetName: 'Roster', gid: '' },
 
   // The 8-week assignment schedule. `deadline` = 24h before the Sunday plenary
   // (Sat 14:00 VN), per the syllabus. `source: 'form'` weeks auto-track from
