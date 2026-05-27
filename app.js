@@ -333,7 +333,7 @@
     var sec = el('section', 'team');
     var h = el('div', 'team-head');
     h.appendChild(el('h2', null, team.name));
-    var sub = el('div', 'team-sub', members.length + ' học viên' + (team.coachingDay ? ' · kèm cặp ' + team.coachingDay : ''));
+    var sub = el('div', 'team-sub', members.length + ' học viên' + (team.coachingDay ? ' · Group Coaching ' + team.coachingDay : ''));
     h.appendChild(sub);
     sec.appendChild(h);
 
