@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funix Upskill Q2 2026 — Theo dõi bài tập</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#1a1f29; --muted:#6b7480; --line:#e6e9ee;
+    --green:#1f9d57; --amber:#d98a0b; --red:#d6442e; --grey:#aeb6c0; --blue:#2f6df0;
+    --accent:#e84d3d; /* Funix-ish red */
+    --shadow:0 1px 3px rgba(20,30,50,.06),0 6px 18px rgba(20,30,50,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  header.top{background:#fff;border-bottom:1px solid var(--line);padding:18px 22px;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+  header.top h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-.2px}
+  .sub{color:var(--muted);font-size:12.5px}
+  .badge{font-size:11px;font-weight:700;letter-spacing:.4px;padding:3px 9px;border-radius:999px}
+  .badge.live{background:#e6f7ee;color:var(--green);border:1px solid #b9e8cd}
+  .badge.sample{background:#fdeceb;color:var(--red);border:1px solid #f6c9c3}
+  .spacer{flex:1}
+  button#refresh{border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+  button#refresh:hover{background:#f1f3f7}
+  main{max-width:1180px;margin:0 auto;padding:22px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .kpi.warn{border-color:#f6c9c3;background:#fff8f7}
+  .kpi-val{font-size:26px;font-weight:750;letter-spacing:-.5px}
+  .kpi.warn .kpi-val{color:var(--red)}
+  .kpi-lab{color:var(--muted);font-size:12px;margin-top:2px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:0 2px 18px;color:var(--muted);font-size:12.5px}
+  .legend .lg{display:inline-flex;align-items:center;gap:5px}
+  .legend .lg-ch{font-weight:800}
+  .s-ontime .lg-ch,.s-ontime{color:var(--green)}
+  .s-late .lg-ch,.s-late{color:var(--amber)}
+  .s-missing .lg-ch,.s-missing{color:var(--red)}
+  .s-notdue .lg-ch,.s-notdue{color:var(--grey)}
+  .s-group .lg-ch,.s-group{color:var(--blue)}
+  section.team{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden}
+  .team-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:12px}
+  .team-head h2{font-size:15.5px;margin:0;font-weight:700}
+  .team-sub{color:var(--muted);font-size:12.5px}
+  .empty{padding:18px;color:var(--muted)}
+  .tbl-wrap{overflow-x:auto}
+  table.matrix{border-collapse:collapse;width:100%;min-width:760px}
+  table.matrix th,table.matrix td{padding:9px 6px;text-align:center;border-bottom:1px solid var(--line)}
+  table.matrix thead th{position:sticky;top:0;background:#fbfcfe;font-size:11.5px;color:var(--muted);font-weight:600;vertical-align:bottom}
+  .c-name{text-align:left!important;padding-left:18px!important;min-width:190px}
+  .wk-key{font-weight:700;color:var(--ink);font-size:12px}
+  .wk-date{font-size:10.5px;color:var(--muted);margin-top:1px}
+  th.c-group{background:#f3f7ff}
+  td.cell{font-weight:800;font-size:15px;width:54px}
+  td.s-notdue{color:var(--grey)}
+  tr.at-risk{background:#fff8f7}
+  tr:hover{background:#f7f9fc}
+  tr.at-risk:hover{background:#fff1ef}
+  .nm{font-weight:600}
+  .flag{display:inline-block;margin-left:8px;font-size:10.5px;font-weight:700;color:var(--red);
+    background:#fdeceb;border:1px solid #f6c9c3;border-radius:999px;padding:1px 7px;vertical-align:middle}
+  .c-pct{min-width:120px;padding-right:18px!important}
+  .bar{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+  .bar-track{flex:1;max-width:84px;height:8px;background:#eef1f5;border-radius:999px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:999px}
+  .b-hi{background:var(--green)} .b-mid{background:var(--amber)} .b-lo{background:var(--red)}
+  .bar-num{font-size:12px;font-weight:700;min-width:34px;text-align:right}
+  .bar-na{color:var(--grey)}
+  .err{background:#fff;border:1px solid #f6c9c3;border-radius:12px;padding:20px;color:var(--ink)}
+  .err p{margin:8px 0 0;color:var(--muted)}
+  .err-hint{font-size:12.5px}
+  footer{max-width:1180px;margin:0 auto;padding:8px 22px 40px;color:var(--muted);font-size:12px}
+  @media(max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>Funix Upskill Q2 2026 — Theo dõi bài tập</h1>
+      <div class="sub" id="meta">Đang tải…</div>
+    </div>
+    <span class="badge" id="badge">…</span>
+    <div class="spacer"></div>
+    <button id="refresh">↻ Làm mới</button>
+  </header>
+  <main><div id="app"></div></main>
+  <footer>
+    Bảng tự cập nhật từ Google Sheet bài nộp (7 form Tuần 0–6). T7–T8 là bài nhóm/nghiệm thu, theo dõi thủ công.
+    Bấm <b>Làm mới</b> để lấy bài nộp mới nhất.
+  </footer>
+  <script src="config.js"></script>
+  <script src="sample-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
