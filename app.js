@@ -208,15 +208,23 @@
     return { code: now > deadline ? 'missing' : 'notdue', deadline: deadline };
   }
 
+  // % is computed only over weeks whose deadline has PASSED ("bài tới hạn").
+  // An assignment submitted early counts once its week becomes due — it does
+  // not inflate the denominator before then (else 1 early submit = 100%).
   function summarize(learner, now) {
-    var due = 0, submitted = 0, ontime = 0, missing = 0, started = false;
+    var due = 0, submitted = 0, ontime = 0, missing = 0;
     CFG.weeks.forEach(function (w) {
-      if (w.source !== 'form') return;
-      var st = cellStatus(learner, w, now);
-      if (st.code === 'ontime' || st.code === 'late' || st.code === 'submitted') { submitted++; started = true; }
-      if (st.code === 'ontime' || st.code === 'submitted') ontime++;
-      if (st.code === 'missing' || st.code === 'ontime' || st.code === 'late' || st.code === 'submitted') due++;
-      if (st.code === 'missing') missing++;
+      if (w.source !== 'form' || !weekWired(w)) return;
+      var deadline = new Date(w.deadline + (w.deadline.indexOf('+') < 0 ? CFG.timezone : ''));
+      if (now <= deadline) return;            // not due yet — excluded from the %
+      due++;
+      var ts = learner.weeks[w.key];
+      if (ts) {
+        submitted++;
+        if (ts instanceof Date && !isNaN(ts) && ts <= deadline) ontime++;
+      } else {
+        missing++;
+      }
     });
     return {
       due: due, submitted: submitted, ontime: ontime, missing: missing,
